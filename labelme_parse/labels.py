@@ -88,24 +88,14 @@ def get_poly(dir_path: Path, label: str):
 
 
 def get_point_names(dir_path: Path):
-    return [
-        k[1]
-        for k, v in get_labels(dir_path).items()
-        if v[0].stem.startswith("floor") and v[2] == "point"
-    ]
+    return [k[1] for k, v in get_labels(dir_path).items() if v[2] == "point"]
 
 
 def get_rect_names(dir_path: Path):
     return [
-        k[1]
-        for k, v in get_labels(dir_path).items()
-        if v[0].stem.startswith("floor") and v[2] == "rectangle"
+        k[1] for k, v in get_labels(dir_path).items() if v[2] == "rectangle"
     ]
 
 
 def get_poly_names(dir_path: Path):
-    return [
-        k[1]
-        for k, v in get_labels(dir_path).items()
-        if v[0].stem.startswith("floor") and v[2] == "polygon"
-    ]
+    return [k[1] for k, v in get_labels(dir_path).items() if v[2] == "polygon"]
