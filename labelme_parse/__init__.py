@@ -4,7 +4,6 @@ from labelme_parse.labels import get_poly
 from labelme_parse.labels import get_poly_names
 from labelme_parse.labels import get_rect
 from labelme_parse.labels import get_rect_names
-from labelme_parse.labels import get_rect_relative
 
 __all__ = [
     "get_point",
@@ -13,5 +12,4 @@ __all__ = [
     "get_poly_names",
     "get_rect",
     "get_rect_names",
-    "get_rect_relative",
 ]

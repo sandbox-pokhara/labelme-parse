@@ -15,7 +15,7 @@ def get_rect_from_points(points: List[List[float]]):
     return int(small_x), int(small_y), int(w + 1), int(h + 1)
 
 
-@lru_cache
+@lru_cache()
 def get_labels(
     dir_path: Path, width: Optional[int] = None, height: Optional[int] = None
 ):
@@ -41,14 +41,31 @@ def get_labels(
     return output
 
 
+def get_offset(
+    dir_path: Path,
+    relative_to: str,
+    width: Optional[int] = None,
+    height: Optional[int] = None,
+) -> Tuple[int, int]:
+    if relative_to:
+        try:
+            return get_point(dir_path, relative_to, width, height)
+        except KeyError:
+            return get_rect(dir_path, relative_to, width, height)[:2]
+    else:
+        return (0, 0)
+
+
 def get_point(
     dir_path: Path,
     label: str,
     width: Optional[int] = None,
     height: Optional[int] = None,
-):
+    relative_to: str = "",
+) -> Tuple[int, int]:
+    x, y = get_offset(dir_path, relative_to, width, height)
     _, p, _ = get_labels(dir_path, width, height)["point", label]
-    return int(p[0][0]), int(p[0][1])
+    return int(p[0][0]) - x, int(p[0][1]) - y
 
 
 def get_rect(
@@ -56,26 +73,9 @@ def get_rect(
     label: str,
     width: Optional[int] = None,
     height: Optional[int] = None,
+    relative_to: str = "",
 ):
-    _, points, _ = get_labels(dir_path, width, height)["rectangle", label]
-    return get_rect_from_points(points)
-
-
-def get_rect_relative(
-    dir_path: Path,
-    label: str,
-    parent: str,
-    width: Optional[int] = None,
-    height: Optional[int] = None,
-):
-    """
-    Parses the rectangle of a label relative to parent rectangle
-
-    For example, if rectangle C is inside rectangle P
-    this function returns the rectangle P related to rectangle C
-    """
-    _, points, _ = get_labels(dir_path, width, height)["rectangle", parent]
-    x0, y0, _, _ = get_rect_from_points(points)
+    x0, y0 = get_offset(dir_path, relative_to, width, height)
     _, points, _ = get_labels(dir_path, width, height)["rectangle", label]
     x, y, w, h = get_rect_from_points(points)
     return x - x0, y - y0, w, h
