@@ -16,14 +16,10 @@ def get_rect_from_points(points: List[List[float]]):
 
 
 @lru_cache()
-def get_labels(
+def get_labels_as_list(
     dir_path: Path, width: Optional[int] = None, height: Optional[int] = None
 ):
-    """
-    :param width: width of the screen
-    :param height: height of the screen
-    """
-    output: dict[Tuple[str, str], Tuple[Path, List[List[float]], str]] = {}
+    output: list[Tuple[str, Path, List[List[float]], str]] = []
     for file_path in dir_path.glob("*.json"):
         with open(file_path) as fp:
             data = json.load(fp)
@@ -33,12 +29,24 @@ def get_labels(
                 for shape in data["shapes"]:
                     points: List[List[float]] = shape["points"]
                     label: str = shape["label"]
-                    output[(shape["shape_type"], label)] = (
-                        file_path,
-                        points,
-                        shape["shape_type"],
+                    output.append(
+                        (
+                            label,
+                            file_path,
+                            points,
+                            shape["shape_type"],
+                        )
                     )
     return output
+
+
+@lru_cache()
+def get_labels(
+    dir_path: Path, width: Optional[int] = None, height: Optional[int] = None
+):
+    return {
+        (l[3], l[0]): l for l in get_labels_as_list(dir_path, width, height)
+    }
 
 
 def get_offset(
@@ -64,7 +72,7 @@ def get_point(
     relative_to: str = "",
 ) -> Tuple[int, int]:
     x, y = get_offset(dir_path, relative_to, width, height)
-    _, p, _ = get_labels(dir_path, width, height)["point", label]
+    _, _, p, _ = get_labels(dir_path, width, height)["point", label]
     return int(p[0][0]) - x, int(p[0][1]) - y
 
 
@@ -76,26 +84,26 @@ def get_rect(
     relative_to: str = "",
 ):
     x0, y0 = get_offset(dir_path, relative_to, width, height)
-    _, points, _ = get_labels(dir_path, width, height)["rectangle", label]
+    _, _, points, _ = get_labels(dir_path, width, height)["rectangle", label]
     x, y, w, h = get_rect_from_points(points)
     return x - x0, y - y0, w, h
 
 
 def get_poly(dir_path: Path, label: str):
-    _, points, _ = get_labels(dir_path)["polygon", label]
+    _, _, points, _ = get_labels(dir_path)["polygon", label]
     p = [(int(p[0]), int(p[1])) for p in points]
     return p
 
 
 def get_point_names(dir_path: Path):
-    return [k[1] for k, v in get_labels(dir_path).items() if v[2] == "point"]
+    return [k[1] for k, v in get_labels(dir_path).items() if v[3] == "point"]
 
 
 def get_rect_names(dir_path: Path):
     return [
-        k[1] for k, v in get_labels(dir_path).items() if v[2] == "rectangle"
+        k[1] for k, v in get_labels(dir_path).items() if v[3] == "rectangle"
     ]
 
 
 def get_poly_names(dir_path: Path):
-    return [k[1] for k, v in get_labels(dir_path).items() if v[2] == "polygon"]
+    return [k[1] for k, v in get_labels(dir_path).items() if v[3] == "polygon"]
