@@ -43,7 +43,12 @@ LABEL_TEMPLATE = """{var} = {cls}(
 )
 """
 
-LABEL_MAP = "LABEL_MAP = {{\n{lines}}}\n"
+RECTANGLES_TEMPLATE = """RECTANGLES: dict[str, tuple[int, int, int, int]] = {{
+{lines}}}
+"""
+POINTS_TEMPLATE = """POINTS: dict[str, tuple[int, int]] = {{
+{lines}}}
+"""
 
 
 def generate_python_code(
@@ -57,7 +62,8 @@ def generate_python_code(
     output = ""
     if not minimal:
         output += CLASSES
-    label_map_data = ""
+    rect_map = ""
+    point_map = ""
     for l in labels:
         name, path, points, typ = l
         var = name.upper()
@@ -87,9 +93,13 @@ def generate_python_code(
                 points=[(int(p[0]), int(p[1])) for p in points],
                 value=value,
             )
-        label_map_data += f'    "{name}": {var},\n'
+        if typ == "rectangle":
+            rect_map += f'    "{name}": {var},\n'
+        if typ == "point":
+            point_map += f'    "{name}": {var},\n'
         name_counter.update([name])
-    output += LABEL_MAP.format(lines=label_map_data)
+    output += RECTANGLES_TEMPLATE.format(lines=rect_map)
+    output += POINTS_TEMPLATE.format(lines=point_map)
     return output
 
 
