@@ -43,9 +43,7 @@ LABEL_TEMPLATE = """{var} = {cls}(
 )
 """
 
-ALL_LABELS_TEMPLATE = """ALL_LABELS = [
-{lines}]
-"""
+LABEL_MAP = "LABEL_MAP = {{\n{lines}}}\n"
 
 
 def generate_python_code(
@@ -59,7 +57,7 @@ def generate_python_code(
     output = ""
     if not minimal:
         output += CLASSES
-    all_labels_lines = ""
+    label_map_data = ""
     for l in labels:
         name, path, points, typ = l
         var = name.upper()
@@ -89,10 +87,9 @@ def generate_python_code(
                 points=[(int(p[0]), int(p[1])) for p in points],
                 value=value,
             )
-        all_labels_lines += "    " + var + "," + "\n"
+        label_map_data += f'    "{name}": {var},\n'
         name_counter.update([name])
-    if not minimal:
-        output += ALL_LABELS_TEMPLATE.format(lines=all_labels_lines)
+    output += LABEL_MAP.format(lines=label_map_data)
     return output
 
 
