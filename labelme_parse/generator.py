@@ -49,11 +49,16 @@ ALL_LABELS_TEMPLATE = """ALL_LABELS = [
 
 
 def generate_python_code(
-    dir_path: Path, width: Optional[int] = None, height: Optional[int] = None
+    dir_path: Path,
+    width: Optional[int] = None,
+    height: Optional[int] = None,
+    minimal: bool = False,
 ):
     labels = get_labels_as_list(dir_path, width, height)
     name_counter = Counter[str]()
-    output = CLASSES
+    output = ""
+    if not minimal:
+        output += CLASSES
     all_labels_lines = ""
     for l in labels:
         name, path, points, typ = l
@@ -72,27 +77,32 @@ def generate_python_code(
         if name_counter[name] > 0:
             var += "_" + str(name_counter[name])
 
-        output += LABEL_TEMPLATE.format(
-            var=var,
-            cls=typ.title(),
-            name=name,
-            file_name=path.name,
-            type=typ,
-            points=[(int(p[0]), int(p[1])) for p in points],
-            value=value,
-        )
+        if minimal:
+            output += f"{var} = {value}\n"
+        else:
+            output += LABEL_TEMPLATE.format(
+                var=var,
+                cls=typ.title(),
+                name=name,
+                file_name=path.name,
+                type=typ,
+                points=[(int(p[0]), int(p[1])) for p in points],
+                value=value,
+            )
         all_labels_lines += "    " + var + "," + "\n"
         name_counter.update([name])
-    return output + ALL_LABELS_TEMPLATE.format(lines=all_labels_lines)
+    if not minimal:
+        output += ALL_LABELS_TEMPLATE.format(lines=all_labels_lines)
+    return output
 
 
 def main():
     parser = ArgumentParser()
     parser.add_argument("labels_dir")
     parser.add_argument("-o", default="labels.py")
+    parser.add_argument("--minimal", action="store_true")
     args = parser.parse_args()
-
-    data = generate_python_code(Path(args.labels_dir))
+    data = generate_python_code(Path(args.labels_dir), minimal=args.minimal)
     with open(args.o, "w") as fp:
         fp.write(data)
 
