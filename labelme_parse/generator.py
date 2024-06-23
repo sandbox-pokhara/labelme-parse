@@ -49,6 +49,9 @@ RECTANGLES_TEMPLATE = """RECTANGLES: dict[str, tuple[int, int, int, int]] = {{
 POINTS_TEMPLATE = """POINTS: dict[str, tuple[int, int]] = {{
 {lines}}}
 """
+LINES_TEMPLATE = """LINES: dict[str, tuple[tuple[int, int], tuple[int, int]]] = {{
+{lines}}}
+"""
 
 
 def generate_python_code(
@@ -64,6 +67,7 @@ def generate_python_code(
         output += CLASSES
     rect_map = ""
     point_map = ""
+    line_map = ""
     for l in labels:
         name, path, points, typ = l
         var = name.upper()
@@ -97,9 +101,12 @@ def generate_python_code(
             rect_map += f'    "{name}": {var},\n'
         if typ == "point":
             point_map += f'    "{name}": {var},\n'
+        if typ == "line":
+            line_map += f'    "{name}": {var},\n'
         name_counter.update([name])
     output += RECTANGLES_TEMPLATE.format(lines=rect_map)
     output += POINTS_TEMPLATE.format(lines=point_map)
+    output += LINES_TEMPLATE.format(lines=line_map)
     return output
 
 
