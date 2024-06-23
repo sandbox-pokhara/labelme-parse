@@ -6,34 +6,6 @@ from typing import Optional
 from labelme_parse.labels import get_labels_as_list
 from labelme_parse.labels import get_rect_from_points
 
-CLASSES = """from dataclasses import dataclass
-
-
-@dataclass
-class Label:
-    name: str
-    file_name: str
-    type: str
-    points: list[tuple[int, int]]
-
-
-@dataclass
-class Rectangle(Label):
-    value: tuple[int, int, int, int]
-
-
-@dataclass
-class Point(Label):
-    value: tuple[int, int]
-
-
-@dataclass
-class Line(Label):
-    value: tuple[tuple[int, int], tuple[int, int]]
-
-
-"""
-
 LABEL_TEMPLATE = """{var} = {cls}(
     name="{name}",
     file_name="{file_name}",
@@ -58,19 +30,15 @@ def generate_python_code(
     dir_path: Path,
     width: Optional[int] = None,
     height: Optional[int] = None,
-    minimal: bool = False,
 ):
     labels = get_labels_as_list(dir_path, width, height)
     name_counter = Counter[str]()
     output = ""
-    if not minimal:
-        output += CLASSES
     rect_map = ""
     point_map = ""
     line_map = ""
     for l in labels:
-        name, path, points, typ = l
-        var = name.upper()
+        name, _, points, typ = l
         if typ == "rectangle":
             value = get_rect_from_points(points)
         elif typ == "point":
@@ -83,26 +51,16 @@ def generate_python_code(
         else:
             raise NotImplementedError(f"Label type {typ} is not implemented.")
         if name_counter[name] > 0:
-            var += "_" + str(name_counter[name])
-
-        if minimal:
-            output += f"{var} = {value}\n"
+            var = name + "_" + str(name_counter[name])
         else:
-            output += LABEL_TEMPLATE.format(
-                var=var,
-                cls=typ.title(),
-                name=name,
-                file_name=path.name,
-                type=typ,
-                points=[(int(p[0]), int(p[1])) for p in points],
-                value=value,
-            )
+            var = name
+        output += f"{var.upper()} = {value}\n"
         if typ == "rectangle":
-            rect_map += f'    "{name}": {var},\n'
+            rect_map += f'    "{var}": {var.upper()},\n'
         if typ == "point":
-            point_map += f'    "{name}": {var},\n'
+            point_map += f'    "{var}": {var.upper()},\n'
         if typ == "line":
-            line_map += f'    "{name}": {var},\n'
+            line_map += f'    "{var}": {var.upper()},\n'
         name_counter.update([name])
     output += RECTANGLES_TEMPLATE.format(lines=rect_map)
     output += POINTS_TEMPLATE.format(lines=point_map)
@@ -114,9 +72,8 @@ def main():
     parser = ArgumentParser()
     parser.add_argument("labels_dir")
     parser.add_argument("-o", default="labels.py")
-    parser.add_argument("--minimal", action="store_true")
     args = parser.parse_args()
-    data = generate_python_code(Path(args.labels_dir), minimal=args.minimal)
+    data = generate_python_code(Path(args.labels_dir))
     with open(args.o, "w") as fp:
         fp.write(data)
 
