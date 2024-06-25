@@ -6,22 +6,25 @@ from typing import Optional
 from labelme_parse.labels import get_labels_as_list
 from labelme_parse.labels import get_rect_from_points
 
-LABEL_TEMPLATE = """{var} = {cls}(
-    name="{name}",
-    file_name="{file_name}",
-    type="{type}",
-    points={points},
-    value={value},
-)
-"""
+IMPORTS = """from typing import Literal
 
-RECTANGLES_TEMPLATE = """RECTANGLES: dict[str, tuple[int, int, int, int]] = {{
+"""
+RECTANGLES_LITERALS_TEMPLATE = """Rectangles = Literal[
+{lines}]
+"""
+POINTS_LITERALS_TEMPLATE = """Points = Literal[
+{lines}]
+"""
+LINES_LITERALS_TEMPLATE = """Lines = Literal[
+{lines}]
+"""
+RECTANGLES_TEMPLATE = """RECTANGLES: dict[Rectangles, tuple[int, int, int, int]] = {{
 {lines}}}
 """
-POINTS_TEMPLATE = """POINTS: dict[str, tuple[int, int]] = {{
+POINTS_TEMPLATE = """POINTS: dict[Points, tuple[int, int]] = {{
 {lines}}}
 """
-LINES_TEMPLATE = """LINES: dict[str, tuple[tuple[int, int], tuple[int, int]]] = {{
+LINES_TEMPLATE = """LINES: dict[Lines, tuple[tuple[int, int], tuple[int, int]]] = {{
 {lines}}}
 """
 
@@ -33,38 +36,45 @@ def generate_python_code(
 ):
     labels = get_labels_as_list(dir_path, width, height)
     name_counter = Counter[str]()
-    output = ""
-    rect_map = ""
-    point_map = ""
-    line_map = ""
+    output = IMPORTS
+    rect_vars: list[tuple[str, str]] = []
+    point_vars: list[tuple[str, str]] = []
+    line_vars: list[tuple[str, str]] = []
     for l in labels:
         name, _, points, typ = l
+        if name_counter[name] > 0:
+            var = name + "_" + str(name_counter[name])
+        else:
+            var = name
         if typ == "rectangle":
             value = get_rect_from_points(points)
+            rect_vars.append((var, str(value)))
         elif typ == "point":
             value = int(points[0][0]), int(points[0][1])
+            point_vars.append((var, str(value)))
         elif typ == "line":
             value = (int(points[0][0]), int(points[0][1])), (
                 int(points[1][0]),
                 int(points[1][1]),
             )
+            line_vars.append((var, str(value)))
         else:
             raise NotImplementedError(f"Label type {typ} is not implemented.")
-        if name_counter[name] > 0:
-            var = name + "_" + str(name_counter[name])
-        else:
-            var = name
-        output += f"{var.upper()} = {value}\n"
-        if typ == "rectangle":
-            rect_map += f'    "{var}": {var.upper()},\n'
-        if typ == "point":
-            point_map += f'    "{var}": {var.upper()},\n'
-        if typ == "line":
-            line_map += f'    "{var}": {var.upper()},\n'
+        # output += f"{var.upper()} = {value}\n"
         name_counter.update([name])
-    output += RECTANGLES_TEMPLATE.format(lines=rect_map)
-    output += POINTS_TEMPLATE.format(lines=point_map)
-    output += LINES_TEMPLATE.format(lines=line_map)
+    lines = "".join([f'    "{var}",\n' for var, _ in rect_vars])
+    output += RECTANGLES_LITERALS_TEMPLATE.format(lines=lines)
+    lines = "".join([f'    "{var}",\n' for var, _ in point_vars])
+    output += POINTS_LITERALS_TEMPLATE.format(lines=lines)
+    lines = "".join([f'    "{var}",\n' for var, _ in line_vars])
+    output += LINES_LITERALS_TEMPLATE.format(lines=lines)
+
+    lines = "".join([f'    "{var}": {value},\n' for var, value in rect_vars])
+    output += RECTANGLES_TEMPLATE.format(lines=lines)
+    lines = "".join([f'    "{var}": {value},\n' for var, value in point_vars])
+    output += POINTS_TEMPLATE.format(lines=lines)
+    lines = "".join([f'    "{var}": {value},\n' for var, value in line_vars])
+    output += LINES_TEMPLATE.format(lines=lines)
     return output
 
 
