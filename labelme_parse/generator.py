@@ -18,6 +18,9 @@ POINTS_LITERALS_TEMPLATE = """Points = Literal[
 LINES_LITERALS_TEMPLATE = """Lines = Literal[
 {lines}]
 """
+POLYGON_LITERALS_TEMPLATE = """Polygons = Literal[
+{lines}]
+"""
 RECTANGLES_TEMPLATE = """RECTANGLES: dict[Rectangles, tuple[int, int, int, int]] = {{
 {lines}}}
 """
@@ -25,6 +28,9 @@ POINTS_TEMPLATE = """POINTS: dict[Points, tuple[int, int]] = {{
 {lines}}}
 """
 LINES_TEMPLATE = """LINES: dict[Lines, tuple[tuple[int, int], tuple[int, int]]] = {{
+{lines}}}
+"""
+POLYGON_TEMPLATE = """POLYGONS: dict[Polygons, list[tuple[int, int]]] = {{
 {lines}}}
 """
 
@@ -40,6 +46,8 @@ def generate_python_code(
     rect_vars: list[tuple[str, str]] = []
     point_vars: list[tuple[str, str]] = []
     line_vars: list[tuple[str, str]] = []
+    polygon_vars: list[tuple[str, str]] = []
+
     for l in labels:
         name, _, points, typ = l
         if name_counter[name] > 0:
@@ -58,23 +66,46 @@ def generate_python_code(
                 int(points[1][1]),
             )
             line_vars.append((var, str(value)))
+        elif typ == "polygon":
+            value = [(int(p[0]), int(p[1])) for p in points]
+            polygon_vars.append((var, str(value)))
         else:
             raise NotImplementedError(f"Label type {typ} is not implemented.")
-        # output += f"{var.upper()} = {value}\n"
-        name_counter.update([name])
-    lines = "".join([f'    "{var}",\n' for var, _ in rect_vars])
-    output += RECTANGLES_LITERALS_TEMPLATE.format(lines=lines)
-    lines = "".join([f'    "{var}",\n' for var, _ in point_vars])
-    output += POINTS_LITERALS_TEMPLATE.format(lines=lines)
-    lines = "".join([f'    "{var}",\n' for var, _ in line_vars])
-    output += LINES_LITERALS_TEMPLATE.format(lines=lines)
 
-    lines = "".join([f'    "{var}": {value},\n' for var, value in rect_vars])
-    output += RECTANGLES_TEMPLATE.format(lines=lines)
-    lines = "".join([f'    "{var}": {value},\n' for var, value in point_vars])
-    output += POINTS_TEMPLATE.format(lines=lines)
-    lines = "".join([f'    "{var}": {value},\n' for var, value in line_vars])
-    output += LINES_TEMPLATE.format(lines=lines)
+        name_counter.update([name])
+
+    if rect_vars:
+        lines = "".join([f'    "{var}",\n' for var, _ in rect_vars])
+        output += RECTANGLES_LITERALS_TEMPLATE.format(lines=lines)
+        lines = "".join(
+            [f'    "{var}": {value},\n' for var, value in rect_vars]
+        )
+        output += RECTANGLES_TEMPLATE.format(lines=lines)
+
+    if point_vars:
+        lines = "".join([f'    "{var}",\n' for var, _ in point_vars])
+        output += POINTS_LITERALS_TEMPLATE.format(lines=lines)
+        lines = "".join(
+            [f'    "{var}": {value},\n' for var, value in point_vars]
+        )
+        output += POINTS_TEMPLATE.format(lines=lines)
+
+    if line_vars:
+        lines = "".join([f'    "{var}",\n' for var, _ in line_vars])
+        output += LINES_LITERALS_TEMPLATE.format(lines=lines)
+        lines = "".join(
+            [f'    "{var}": {value},\n' for var, value in line_vars]
+        )
+        output += LINES_TEMPLATE.format(lines=lines)
+
+    if polygon_vars:
+        lines = "".join([f'    "{var}",\n' for var, _ in polygon_vars])
+        output += POLYGON_LITERALS_TEMPLATE.format(lines=lines)
+        lines = "".join(
+            [f'    "{var}": {value},\n' for var, value in polygon_vars]
+        )
+        output += POLYGON_TEMPLATE.format(lines=lines)
+
     return output
 
 
