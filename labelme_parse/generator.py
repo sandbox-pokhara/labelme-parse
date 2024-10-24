@@ -6,7 +6,9 @@ from typing import Optional
 from labelme_parse.labels import get_labels_as_list
 from labelme_parse.labels import get_rect_from_points
 
-IMPORTS = """from typing import Literal
+IMPORTS = """from pathlib import Path
+from pathlib import WindowsPath
+from typing import Literal
 
 """
 RECTANGLES_LITERALS_TEMPLATE = """Rectangles = Literal[
@@ -21,6 +23,8 @@ LINES_LITERALS_TEMPLATE = """Lines = Literal[
 POLYGON_LITERALS_TEMPLATE = """Polygons = Literal[
 {lines}]
 """
+LABELS_LITERALS_TEMPLATE = """Labels = {literals}
+"""
 RECTANGLES_TEMPLATE = """RECTANGLES: dict[Rectangles, tuple[int, int, int, int]] = {{
 {lines}}}
 """
@@ -33,6 +37,9 @@ LINES_TEMPLATE = """LINES: dict[Lines, tuple[tuple[int, int], tuple[int, int]]] 
 POLYGON_TEMPLATE = """POLYGONS: dict[Polygons, list[tuple[int, int]]] = {{
 {lines}}}
 """
+LABELS_TEMPLATE = """LABELS: dict[Labels, tuple[Path, list[list[float]], str]] = {{
+{lines}}}
+"""
 
 
 def generate_python_code(
@@ -43,6 +50,7 @@ def generate_python_code(
     labels = get_labels_as_list(dir_path, width, height)
     name_counter = Counter[str]()
     output = IMPORTS
+    literals: list[str] = []
     rect_vars: list[tuple[str, str]] = []
     point_vars: list[tuple[str, str]] = []
     line_vars: list[tuple[str, str]] = []
@@ -80,6 +88,7 @@ def generate_python_code(
         lines = "".join(
             [f'    "{var}": {value},\n' for var, value in rect_vars]
         )
+        literals.append("Rectangles")
         output += RECTANGLES_TEMPLATE.format(lines=lines)
 
     if point_vars:
@@ -89,6 +98,7 @@ def generate_python_code(
             [f'    "{var}": {value},\n' for var, value in point_vars]
         )
         output += POINTS_TEMPLATE.format(lines=lines)
+        literals.append("Points")
 
     if line_vars:
         lines = "".join([f'    "{var}",\n' for var, _ in line_vars])
@@ -97,6 +107,7 @@ def generate_python_code(
             [f'    "{var}": {value},\n' for var, value in line_vars]
         )
         output += LINES_TEMPLATE.format(lines=lines)
+        literals.append("Lines")
 
     if polygon_vars:
         lines = "".join([f'    "{var}",\n' for var, _ in polygon_vars])
@@ -105,7 +116,22 @@ def generate_python_code(
             [f'    "{var}": {value},\n' for var, value in polygon_vars]
         )
         output += POLYGON_TEMPLATE.format(lines=lines)
+        literals.append("Polygons")
 
+    # Union of All labels
+    output += LABELS_LITERALS_TEMPLATE.format(literals=" | ".join(literals))
+    # base_dir/project_name/assets/labels
+    #               .parent -> (base_dir/project_name/assets)
+    #               .parent -> (base_dir/project_name)
+    #               .parent -> (base_dir)
+    base_dir = dir_path.parent.parent.parent
+    lines = "".join(
+        [
+            f'    "{label}": {(file_path.relative_to(base_dir),points,shape_type)},\n'
+            for (label, file_path, points, shape_type) in labels
+        ]
+    )
+    output += LABELS_TEMPLATE.format(lines=lines)
     return output
 
 
