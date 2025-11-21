@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "labelme-parse"
-version = "1.0.9"
+version = "1.0.10"
 dependencies = []
 requires-python = ">=3"
 authors = [{ name = "Pradish Bijukchhe", email = "pradish@sandbox.com.np" }]
@@ -17,6 +17,9 @@ classifiers = ["Programming Language :: Python :: 3"]
 [project.urls]
 Homepage = "https://github.com/sandbox-pokhara/labelme-parse"
 Issues = "https://github.com/sandbox-pokhara/labelme-parse/issues"
+
+[project.scripts]
+labelme-parse = "labelme_parse.generator:main"
 
 [tool.setuptools]
 include-package-data = true
